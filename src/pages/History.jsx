@@ -96,7 +96,10 @@ export default function History() {
                         onClick={e => { e.stopPropagation(); handleDelete(idx) }}
                         className="text-red-500 text-lg px-1 active:scale-90"
                       >🗑️</button>
-                      <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+                      <div className="flex items-center gap-2">
+  <button onClick={e => { e.stopPropagation(); handleDelete(idx) }} className="text-red-500 text-lg px-1">🗑️</button>
+  <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+</div>
                     </div>
                   </div>
                 </button>
