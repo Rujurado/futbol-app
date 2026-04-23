@@ -231,7 +231,7 @@ export default function Setup() {
   const navigate = useNavigate()
   const { state, dispatch } = useMatch()
   const { setup } = state
-  const DURATIONS = [20, 25, 30, 35, 40, 45, 60, 90, 95]
+  const DURATIONS = [20, 25, 30, 35, 40, 45, 60, 90]
 
   function updateTeam(teamKey, payload) {
     dispatch({ type: 'UPDATE_TEAM', teamKey, payload })
