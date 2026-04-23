@@ -6,7 +6,7 @@ import History from './pages/History'
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-green-950 text-white font-sans">
+    <div className="min-h-screen bg-qf-dark text-white font-sans">
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/setup" element={<Setup />} />

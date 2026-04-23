@@ -15,11 +15,16 @@ export default function Home() {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen px-6 safe-top safe-bottom no-select">
-      <div className="text-center mb-12">
-        <div className="text-7xl mb-4">⚽</div>
-        <h1 className="text-4xl font-black tracking-tight">Fútbol App</h1>
-        <p className="text-green-400 mt-2 text-sm">Marcador · Goles · Estadísticas</p>
+    <div className="flex flex-col items-center justify-center min-h-screen px-6 safe-top safe-bottom no-select bg-qf-dark">
+      {/* Logo + Club name */}
+      <div className="flex flex-col items-center mb-10">
+        <img
+          src="/logo.jpg"
+          alt="Quinta-Feira FC"
+          className="w-36 h-36 rounded-full object-cover shadow-2xl mb-4 border-4 border-qf-blue"
+        />
+        <h1 className="text-3xl font-black tracking-tight text-white">QUINTA-FEIRA FC</h1>
+        <p className="text-qf-blue text-xs uppercase tracking-widest mt-1">EST. 2023 · Football Club</p>
       </div>
 
       <div className="w-full max-w-sm flex flex-col gap-4">
@@ -34,18 +39,20 @@ export default function Home() {
 
         <button
           onClick={handleNewMatch}
-          className="w-full py-4 rounded-2xl bg-green-500 text-white font-bold text-lg active:scale-95 transition-transform"
+          className="w-full py-4 rounded-2xl bg-qf-blue text-black font-bold text-lg active:scale-95 transition-transform"
         >
-          {hasActiveMatch ? '+ Nuevo partido' : '⚽ Nuevo partido'}
+          ⚽ Nuevo partido
         </button>
 
         <button
           onClick={() => navigate('/history')}
-          className="w-full py-4 rounded-2xl bg-green-900 text-green-300 font-bold text-lg active:scale-95 transition-transform"
+          className="w-full py-4 rounded-2xl bg-qf-card text-qf-blue font-bold text-lg active:scale-95 transition-transform border border-qf-blue/30"
         >
-          📋 Historial
+          📋 Historial & Goleadores
         </button>
       </div>
+
+      <p className="text-gray-600 text-xs mt-12">⚽ Marcador oficial Quinta-Feira</p>
     </div>
   )
 }

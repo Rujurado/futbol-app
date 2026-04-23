@@ -2,7 +2,7 @@ import { createContext, useContext, useReducer, useEffect } from 'react'
 
 const MatchContext = createContext(null)
 
-const TEAM_COLORS = ['#ef4444','#3b82f6','#22c55e','#f97316','#a855f7','#eab308','#ec4899','#0ea5e9','#f8fafc','#1e293b']
+const TEAM_COLORS = ['#f97316','#1e293b','#ef4444','#38bdf8','#22c55e','#a855f7','#eab308','#ec4899','#f8fafc','#0ea5e9']
 
 export const DEFAULT_COLORS = TEAM_COLORS
 
@@ -10,8 +10,8 @@ const initialState = {
   setup: {
     stadium: '',
     duration: 40,
-    team1: { name: 'Equipo 1', color: '#ef4444', players: [] },
-    team2: { name: 'Equipo 2', color: '#3b82f6', players: [] },
+    team1: { name: 'Team Wanda', color: '#f97316', players: [] },
+    team2: { name: 'Team China', color: '#1e293b', players: [] },
   },
   match: null,
 }
@@ -35,6 +35,17 @@ function reducer(state, action) {
       const { teamKey, playerId, photoUrl } = action.payload
       const players = state.setup[teamKey].players.map(p =>
         p.id === playerId ? { ...p, photo: photoUrl } : p
+      )
+      return {
+        ...state,
+        setup: { ...state.setup, [teamKey]: { ...state.setup[teamKey], players } },
+      }
+    }
+
+    case 'UPDATE_PLAYER_INFO': {
+      const { teamKey, playerId, info } = action.payload
+      const players = state.setup[teamKey].players.map(p =>
+        p.id === playerId ? { ...p, ...info } : p
       )
       return {
         ...state,

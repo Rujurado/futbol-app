@@ -10,35 +10,17 @@
 body {
   margin: 0;
   padding: 0;
+  background-color: #080c10;
   overscroll-behavior: none;
   -webkit-font-smoothing: antialiased;
 }
 
-/* iOS safe area support */
 .safe-top    { padding-top: env(safe-area-inset-top, 0px); }
 .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.no-select   { -webkit-user-select: none; user-select: none; }
 
-/* Prevent text selection on button mashing */
-.no-select {
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* Pulsating gol text */
 @keyframes goalPulse {
   0%, 100% { transform: scale(1) rotate(-2deg); }
-  50% { transform: scale(1.15) rotate(2deg); }
+  50%       { transform: scale(1.15) rotate(2deg); }
 }
 .goal-text { animation: goalPulse 0.7s ease-in-out infinite; }
-
-/* Avatar initial circle */
-.avatar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 700;
-  font-size: 1.25rem;
-  border-radius: 9999px;
-  overflow: hidden;
-  flex-shrink: 0;
-}
