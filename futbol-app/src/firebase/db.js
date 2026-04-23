@@ -8,7 +8,7 @@ export async function saveMatch(matchData) {
       ...data,
       createdAt: serverTimestamp(),
     })
-  } catch { /* fire and forget */ }
+  } catch { }
 }
 
 export async function getMatches() {
@@ -19,7 +19,7 @@ export async function getMatches() {
   } catch { return [] }
 }
 
-export async function uploadPlayerPhoto(file, playerId) {
+export async function uploadPlayerPhoto(file) {
   const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
   if (!allowed.includes(file.type)) throw new Error('Solo se permiten imágenes JPG, PNG o WebP')
   if (file.size > 10 * 1024 * 1024) throw new Error('La imagen no puede superar 10MB')
