@@ -1,0 +1,26 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  -webkit-tap-highlight-color: transparent;
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: #080c10;
+  overscroll-behavior: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+.safe-top    { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+.no-select   { -webkit-user-select: none; user-select: none; }
+
+@keyframes goalPulse {
+  0%, 100% { transform: scale(1) rotate(-2deg); }
+  50%       { transform: scale(1.15) rotate(2deg); }
+}
+.goal-text { animation: goalPulse 0.7s ease-in-out infinite; }
