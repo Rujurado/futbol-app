@@ -94,7 +94,10 @@ export default function History() {
                         <p className="text-gray-500 text-xs">{m.stadium || 'Sin estadio'} · {formatDate(m.createdAt)}</p>
                       </div>
                     </div>
-                    <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+                    <div className="flex items-center gap-2">
+  <button onClick={e => { e.stopPropagation(); handleDelete(idx) }} className="text-red-500 text-lg px-1">🗑️</button>
+  <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+</div>
                   </div>
                 </button>
 
