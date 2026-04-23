@@ -16,7 +16,6 @@ export default function Home() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen px-6 safe-top safe-bottom no-select bg-qf-dark">
-      {/* Logo + Club name */}
       <div className="flex flex-col items-center mb-10">
         <img
           src="/logo.jpg"
@@ -49,6 +48,13 @@ export default function Home() {
           className="w-full py-4 rounded-2xl bg-qf-card text-qf-blue font-bold text-lg active:scale-95 transition-transform border border-qf-blue/30"
         >
           📋 Historial & Goleadores
+        </button>
+
+        <button
+          onClick={() => navigate('/players')}
+          className="w-full py-4 rounded-2xl bg-qf-card text-white font-bold text-lg active:scale-95 transition-transform border border-qf-border"
+        >
+          👥 Plantel
         </button>
       </div>
 

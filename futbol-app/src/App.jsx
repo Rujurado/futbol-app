@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import Setup from './pages/Setup'
 import Match from './pages/Match'
 import History from './pages/History'
+import Players from './pages/Players'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
         <Route path="/setup" element={<Setup />} />
         <Route path="/match" element={<Match />} />
         <Route path="/history" element={<History />} />
+        <Route path="/players" element={<Players />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>
