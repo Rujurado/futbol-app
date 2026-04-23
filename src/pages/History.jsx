@@ -18,6 +18,12 @@ function loadLocalHistory() {
   } catch { return [] }
 }
 
+function deleteMatch(index) {
+  const history = loadLocalHistory()
+  history.splice(index, 1)
+  localStorage.setItem('qf_match_history', JSON.stringify(history))
+}
+
 export default function History() {
   const navigate = useNavigate()
   const [matches, setMatches] = useState([])
@@ -94,7 +100,15 @@ export default function History() {
                         <p className="text-gray-500 text-xs">{m.stadium || 'Sin estadio'} · {formatDate(m.createdAt)}</p>
                       </div>
                     </div>
-                    <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+                    <div className="flex items-center gap-2">
+  <button
+    onClick={e => { e.stopPropagation(); if(confirm('¿Borrar este partido?')) { deleteMatch(idx); setMatches(loadLocalHistory()) } }}
+    className="text-red-500 text-xs px-2 active:scale-90"
+  >
+    🗑️
+  </button>
+  <span className="text-gray-600 text-xs">{expanded === idx ? '▲' : '▼'}</span>
+</div>
                   </div>
                 </button>
 
