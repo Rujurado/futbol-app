@@ -96,13 +96,28 @@ export default function Match() {
     }
   }, [match, totalMs, halves, currentHalf, audioOn])
 
-  useEffect(() => {
+ useEffect(() => {
     if (!match) { navigate('/'); return }
     warned5.current = false; warnedEnd.current = false
     tick()
     timerRef.current = setInterval(tick, 500)
     return () => clearInterval(timerRef.current)
   }, [match?.status, match?.startTime, match?.pausedElapsed, match?.currentHalf])
+
+  useEffect(() => {
+    const handler = () => {
+      if (audioOnRef.current) return
+      try { getAudio(); audioOnRef.current = true; setAudioOn(true) } catch {}
+      window.removeEventListener('touchstart', handler)
+      window.removeEventListener('click', handler)
+    }
+    window.addEventListener('touchstart', handler, { once: true })
+    window.addEventListener('click', handler, { once: true })
+    return () => {
+      window.removeEventListener('touchstart', handler)
+      window.removeEventListener('click', handler)
+    }
+  }, [])
 
   if (!match && !showSummary) return null
 
