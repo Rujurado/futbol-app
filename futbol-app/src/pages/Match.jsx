@@ -82,8 +82,11 @@ export default function Match() {
   const halves = match?.halves ?? 1
   const currentHalf = match?.currentHalf ?? 1
 
-  function unlockAudio() {
-    try { getAudio(); audioOnRef.current = true; setAudioOn(true) } catch {}
+  function toggleAudio() {
+    const next = !audioOnRef.current
+    try { getAudio() } catch {}
+    audioOnRef.current = next
+    setAudioOn(next)
   }
 
   const tick = useCallback(() => {
@@ -97,7 +100,6 @@ export default function Match() {
     if (e >= totalMs && !warnedEnd.current) {
       warnedEnd.current = true
       if (audioOnRef.current) playHorn()
-      // Generar tiempo adicional aleatorio entre 2 y 6 minutos
       if (!stoppageSetRef.current) {
         const mins = Math.floor(Math.random() * 5) + 2
         stoppageMsRef.current = mins * 60 * 1000
@@ -105,7 +107,6 @@ export default function Match() {
       }
       if (halves === 2 && currentHalf === 1) dispatch({ type: 'HALF_TIME' })
     }
-    // Detener el reloj al terminar el tiempo adicional
     if (stoppageSetRef.current && e >= totalMs + stoppageMsRef.current) {
       clearInterval(timerRef.current)
     }
@@ -117,19 +118,6 @@ export default function Match() {
     timerRef.current = setInterval(tick, 500)
     return () => clearInterval(timerRef.current)
   }, [match?.status, match?.startTime, match?.pausedElapsed])
-
-  useEffect(() => {
-    const handler = () => {
-      if (audioOnRef.current) return
-      try { getAudio(); audioOnRef.current = true; setAudioOn(true) } catch {}
-    }
-    window.addEventListener('touchstart', handler, { once: true })
-    window.addEventListener('click', handler, { once: true })
-    return () => {
-      window.removeEventListener('touchstart', handler)
-      window.removeEventListener('click', handler)
-    }
-  }, [])
 
   if (!match && !showSummary) return null
 
@@ -291,12 +279,6 @@ export default function Match() {
 
   return (
     <div className="min-h-screen flex flex-col safe-top safe-bottom no-select bg-qf-dark">
-      {!audioOn && (
-        <button onClick={unlockAudio}
-          className="w-full py-2 bg-qf-blue/10 text-qf-blue text-xs font-semibold flex-shrink-0 text-center active:bg-qf-blue/20">
-          🔇 Tocá aquí para activar los sonidos
-        </button>
-      )}
 
       <div className="flex-shrink-0 pt-3 px-4">
         {match.stadium && <p className="text-center text-qf-blue text-xs uppercase tracking-widest mb-2">🏟️ {match.stadium}</p>}
@@ -349,6 +331,10 @@ export default function Match() {
         <button onClick={() => setTvMode(true)}
           className="px-4 py-3 rounded-2xl bg-qf-card text-gray-400 active:scale-95 border border-qf-border text-lg">
           📺
+        </button>
+        <button onClick={toggleAudio}
+          className={`px-4 py-3 rounded-2xl active:scale-95 border text-lg ${audioOn ? 'bg-qf-blue/20 border-qf-blue text-qf-blue' : 'bg-qf-card border-qf-border text-gray-400'}`}>
+          {audioOn ? '🔊' : '🔇'}
         </button>
         <button onClick={togglePause} disabled={isFinished}
           className="flex-1 py-3 rounded-2xl bg-yellow-500/20 text-yellow-300 font-semibold active:scale-95 disabled:opacity-40">
