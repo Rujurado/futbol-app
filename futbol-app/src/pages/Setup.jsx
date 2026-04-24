@@ -232,6 +232,23 @@ export default function Setup() {
   const { state, dispatch } = useMatch()
   const { setup } = state
   const DURATIONS = [20, 25, 30, 35, 40, 45, 60, 90, 95]
+  {/* Halves */}
+        <div className="bg-qf-card rounded-2xl p-4 border border-qf-border">
+          <h2 className="font-bold text-lg mb-3">⚽ Tiempos</h2>
+          <div className="flex gap-2">
+            {[1, 2].map(h => (
+              <button
+                key={h}
+                onClick={() => dispatch({ type: 'UPDATE_SETUP', payload: { halves: h } })}
+                className={`flex-1 py-2 rounded-xl font-semibold text-sm transition-all active:scale-95 ${
+                  setup.halves === h ? 'bg-qf-blue text-black' : 'bg-qf-dark text-gray-400'
+                }`}
+              >
+                {h === 1 ? '1 tiempo' : '2 tiempos'}
+              </button>
+            ))}
+          </div>
+        </div>
 
   function updateTeam(teamKey, payload) {
     dispatch({ type: 'UPDATE_TEAM', teamKey, payload })

@@ -10,6 +10,7 @@ const initialState = {
   setup: {
     stadium: '',
     duration: 40,
+    halves: 1,
     team1: { name: 'Team Wanda', color: '#f97316', players: [] },
     team2: { name: 'Team China', color: '#1e293b', players: [] },
   },
@@ -60,6 +61,8 @@ function reducer(state, action) {
           id: Date.now().toString(),
           stadium: state.setup.stadium,
           duration: state.setup.duration,
+          halves: state.setup.halves,
+          currentHalf: 1,
           team1: { ...state.setup.team1 },
           team2: { ...state.setup.team2 },
           startTime: Date.now(),
@@ -90,18 +93,35 @@ function reducer(state, action) {
       }
     }
 
+    case 'HALF_TIME':
+      return { ...state, match: { ...state.match, status: 'halftime' } }
+
+    case 'START_SECOND_HALF':
+      return {
+        ...state,
+        match: {
+          ...state.match,
+          currentHalf: 2,
+          startTime: Date.now(),
+          pausedElapsed: 0,
+          status: 'playing',
+        },
+      }
+
     case 'SCORE_GOAL': {
       const { player, teamKey } = action.payload
-      const elapsed = state.match.status === 'playing'
-        ? Math.floor((Date.now() - state.match.startTime - state.match.pausedElapsed) / 60000)
+      const elapsedMs = state.match.status === 'playing'
+        ? Date.now() - state.match.startTime - state.match.pausedElapsed
         : 0
+      const halfOffset = state.match.currentHalf === 2 ? state.match.duration : 0
+      const minute = halfOffset + Math.floor(elapsedMs / 60000)
       const scoreKey = teamKey === 'team1' ? 'score1' : 'score2'
       return {
         ...state,
         match: {
           ...state.match,
           [scoreKey]: state.match[scoreKey] + 1,
-          goals: [...state.match.goals, { player, teamKey, minute: elapsed, timestamp: Date.now() }],
+          goals: [...state.match.goals, { player, teamKey, minute, timestamp: Date.now() }],
         },
       }
     }
