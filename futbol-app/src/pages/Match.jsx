@@ -67,8 +67,14 @@ export default function Match() {
   const timerRef = useRef(null)
   const warned5 = useRef(false)
   const warnedEnd = useRef(false)
+  const audioOnRef = useRef(false)
+  const stoppageMsRef = useRef(0)
+  const stoppageSetRef = useRef(false)
 
   const totalMs = (match?.duration ?? 40) * 60 * 1000
+  const isInStoppage = elapsed > totalMs && stoppageMsRef.current > 0
+  const stoppageMinDisplay = isInStoppage ? Math.ceil((elapsed - totalMs) / 60000) : 0
+  const effectiveTotalMs = totalMs + stoppageMsRef.current
   const remaining = Math.max(0, totalMs - elapsed)
   const isFinished = match?.status === 'finished'
   const isPaused = match?.status === 'paused'
@@ -77,7 +83,7 @@ export default function Match() {
   const currentHalf = match?.currentHalf ?? 1
 
   function unlockAudio() {
-    try { getAudio(); setAudioOn(true) } catch {}
+    try { getAudio(); audioOnRef.current = true; setAudioOn(true) } catch {}
   }
 
   const tick = useCallback(() => {
@@ -85,31 +91,37 @@ export default function Match() {
     const e = Date.now() - match.startTime - match.pausedElapsed
     setElapsed(e)
     const rem = totalMs - e
-    if (audioOn && rem <= 5 * 60 * 1000 && rem > 4.85 * 60 * 1000 && !warned5.current) {
+    if (audioOnRef.current && rem <= 5 * 60 * 1000 && rem > 4.85 * 60 * 1000 && !warned5.current) {
       warned5.current = true; playBeeps(3, 780, 0.28)
     }
     if (e >= totalMs && !warnedEnd.current) {
       warnedEnd.current = true
-      if (audioOn) playHorn()
-      clearInterval(timerRef.current)
+      if (audioOnRef.current) playHorn()
+      // Generar tiempo adicional aleatorio entre 2 y 6 minutos
+      if (!stoppageSetRef.current) {
+        const mins = Math.floor(Math.random() * 5) + 2
+        stoppageMsRef.current = mins * 60 * 1000
+        stoppageSetRef.current = true
+      }
       if (halves === 2 && currentHalf === 1) dispatch({ type: 'HALF_TIME' })
     }
-  }, [match, totalMs, halves, currentHalf, audioOn])
+    // Detener el reloj al terminar el tiempo adicional
+    if (stoppageSetRef.current && e >= totalMs + stoppageMsRef.current) {
+      clearInterval(timerRef.current)
+    }
+  }, [match, totalMs, halves, currentHalf])
 
- useEffect(() => {
+  useEffect(() => {
     if (!match) { navigate('/'); return }
-    warned5.current = false; warnedEnd.current = false
     tick()
     timerRef.current = setInterval(tick, 500)
     return () => clearInterval(timerRef.current)
-  }, [match?.status, match?.startTime, match?.pausedElapsed, match?.currentHalf])
+  }, [match?.status, match?.startTime, match?.pausedElapsed])
 
   useEffect(() => {
     const handler = () => {
       if (audioOnRef.current) return
       try { getAudio(); audioOnRef.current = true; setAudioOn(true) } catch {}
-      window.removeEventListener('touchstart', handler)
-      window.removeEventListener('click', handler)
     }
     window.addEventListener('touchstart', handler, { once: true })
     window.addEventListener('click', handler, { once: true })
@@ -124,7 +136,7 @@ export default function Match() {
   const mins = pad(remaining / 60000)
   const secs = pad((remaining % 60000) / 1000)
   const timeStr = `${mins}:${secs}`
-  const pct = Math.min(100, (elapsed / totalMs) * 100)
+  const pct = Math.min(100, (elapsed / effectiveTotalMs) * 100)
 
   function handleGoal(player, teamKey) {
     dispatch({ type: 'SCORE_GOAL', payload: { player, teamKey } })
@@ -150,7 +162,10 @@ export default function Match() {
   }
 
   function handleStartSecondHalf() {
-    warned5.current = false; warnedEnd.current = false
+    warned5.current = false
+    warnedEnd.current = false
+    stoppageMsRef.current = 0
+    stoppageSetRef.current = false
     dispatch({ type: 'START_SECOND_HALF' })
   }
 
@@ -173,12 +188,12 @@ export default function Match() {
           <div className="px-3 py-1.5 text-xs font-bold uppercase tracking-wider" style={{ backgroundColor: team.color + '30', color: team.color }}>
             {team.name}
           </div>
-          <div className={`grid grid-cols-3 gap-2 p-2 bg-qf-card/60`}>
+          <div className="grid grid-cols-3 gap-2 p-2 bg-qf-card/60">
             {team.players.map(player => (
               <button key={player.id}
                 onClick={() => !isFinished && handleGoal(player, teamKey)}
                 disabled={isFinished || isPaused}
-                className={`flex flex-col items-center gap-1 p-2 rounded-xl active:scale-90 transition-transform disabled:opacity-40`}
+                className="flex flex-col items-center gap-1 p-2 rounded-xl active:scale-90 transition-transform disabled:opacity-40"
                 style={{ backgroundColor: team.color + '20' }}>
                 <div className={`${small ? 'w-9 h-9' : 'w-12 h-12'} rounded-full overflow-hidden flex items-center justify-center text-sm font-bold`}
                   style={{ backgroundColor: team.color + '40', color: team.color }}>
@@ -234,9 +249,13 @@ export default function Match() {
             <p className="text-8xl font-black tabular-nums" style={{ color: t1.color }}>{match.score1}</p>
           </div>
           <div className="flex flex-col items-center gap-1">
-            <p className={`text-4xl font-black tabular-nums ${remaining === 0 ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-white'}`}>{timeStr}</p>
+            <p className={`text-4xl font-black tabular-nums ${remaining === 0 ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-white'}`}>
+              {timeStr}
+              {isInStoppage && <span className="text-orange-400 text-2xl ml-1">+{stoppageMinDisplay}'</span>}
+            </p>
             {halves === 2 && <p className="text-gray-500 text-sm">{currentHalf}° tiempo</p>}
             {isPaused && <p className="text-yellow-400 text-xs font-bold">PAUSA</p>}
+            {isInStoppage && <p className="text-orange-400 text-xs font-bold">ADICIONAL</p>}
           </div>
           <div className="flex flex-col items-center gap-1">
             <p className="text-xl font-bold text-white">{t2.name}</p>
@@ -288,12 +307,19 @@ export default function Match() {
             <span className="text-5xl font-black tabular-nums" style={{ color: t1.color }}>{match.score1}</span>
           </div>
           <div className="flex flex-col items-center px-2">
-            <div className={`text-3xl font-black tabular-nums ${remaining === 0 ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-white'}`}>{timeStr}</div>
+            <div className={`text-3xl font-black tabular-nums ${remaining === 0 ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-white'}`}>
+              {timeStr}
+              {isInStoppage && (
+                <span className="text-orange-400 text-xl ml-1">+{stoppageMinDisplay}'</span>
+              )}
+            </div>
             <div className="w-24 h-1.5 bg-qf-dark rounded-full mt-1 overflow-hidden">
-              <div className="h-full bg-qf-blue rounded-full transition-all" style={{ width: `${pct}%` }} />
+              <div className={`h-full rounded-full transition-all ${isInStoppage ? 'bg-orange-400' : 'bg-qf-blue'}`} style={{ width: `${pct}%` }} />
             </div>
             {halves === 2 && <span className="text-gray-500 text-xs mt-0.5">{currentHalf}° T</span>}
-            <span className="text-gray-500 text-xs">{isPaused ? 'PAUSA' : remaining === 0 ? 'FIN' : ''}</span>
+            <span className="text-gray-500 text-xs">
+              {isPaused ? 'PAUSA' : isInStoppage ? 'ADICIONAL' : remaining === 0 ? 'FIN' : ''}
+            </span>
           </div>
           <div className="flex-1 flex flex-col items-center gap-1">
             <div className="w-5 h-5 rounded-full" style={{ backgroundColor: t2.color }} />
