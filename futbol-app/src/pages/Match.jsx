@@ -23,33 +23,47 @@ function stripPhotos(m) {
 
 // Audio
 let _ctx = null
-function getAudio() {
+async function getAudio() {
   if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)()
-  if (_ctx.state === 'suspended') _ctx.resume()
+  if (_ctx.state === 'suspended') await _ctx.resume()
   return _ctx
 }
-function playBeeps(n, freq = 780, dur = 0.28) {
+async function playBeeps(n, freq = 880, dur = 0.35) {
   try {
-    const ctx = getAudio()
+    const ctx = await getAudio()
+    const compressor = ctx.createDynamicsCompressor()
+    compressor.connect(ctx.destination)
     for (let i = 0; i < n; i++) {
-      const osc = ctx.createOscillator(), g = ctx.createGain()
-      osc.connect(g); g.connect(ctx.destination)
-      osc.frequency.value = freq; osc.type = 'sine'
-      const t = ctx.currentTime + i * (dur + 0.12)
-      g.setValueAtTime(0.5, t); g.exponentialRampToValueAtTime(0.001, t + dur)
-      osc.start(t); osc.stop(t + dur + 0.01)
+      const t = ctx.currentTime + i * (dur + 0.1)
+      ;[freq, freq * 1.5].forEach(f => {
+        const osc = ctx.createOscillator()
+        const g = ctx.createGain()
+        osc.connect(g); g.connect(compressor)
+        osc.frequency.value = f; osc.type = 'square'
+        g.setValueAtTime(1.0, t)
+        g.exponentialRampToValueAtTime(0.001, t + dur)
+        osc.start(t); osc.stop(t + dur + 0.01)
+      })
     }
   } catch {}
 }
-function playHorn() {
+async function playHorn() {
   try {
-    const ctx = getAudio()
-    const osc = ctx.createOscillator(), g = ctx.createGain()
-    osc.connect(g); g.connect(ctx.destination)
-    osc.frequency.value = 440; osc.type = 'sawtooth'
-    g.setValueAtTime(0.6, ctx.currentTime)
-    g.exponentialRampToValueAtTime(0.001, ctx.currentTime + 2.5)
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 2.5)
+    const ctx = await getAudio()
+    const compressor = ctx.createDynamicsCompressor()
+    compressor.connect(ctx.destination)
+    ;[0, 0.55, 1.1].forEach(offset => {
+      ;[880, 1100, 660].forEach(f => {
+        const osc = ctx.createOscillator()
+        const g = ctx.createGain()
+        osc.connect(g); g.connect(compressor)
+        osc.frequency.value = f; osc.type = 'square'
+        const t = ctx.currentTime + offset
+        g.setValueAtTime(1.0, t)
+        g.exponentialRampToValueAtTime(0.001, t + 0.4)
+        osc.start(t); osc.stop(t + 0.41)
+      })
+    })
   } catch {}
 }
 
@@ -62,12 +76,13 @@ export default function Match() {
   const [showSummary, setShowSummary] = useState(false)
   const [finishedMatch, setFinishedMatch] = useState(null)
   const [tvMode, setTvMode] = useState(false)
-  const [audioOn, setAudioOn] = useState(false)
+  const [audioOn, setAudioOn] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
   const timerRef = useRef(null)
   const warned5 = useRef(false)
   const warnedEnd = useRef(false)
-  const audioOnRef = useRef(false)
+  const warnedStoppage = useRef(false)
+  const audioOnRef = useRef(true)
   const stoppageMsRef = useRef(0)
   const stoppageSetRef = useRef(false)
 
@@ -84,18 +99,20 @@ export default function Match() {
 
   function toggleAudio() {
     const next = !audioOnRef.current
-    try { getAudio() } catch {}
+    getAudio()
     audioOnRef.current = next
     setAudioOn(next)
   }
 
   const tick = useCallback(() => {
     if (!match || match.status !== 'playing') return
+    if (warnedStoppage.current) { clearInterval(timerRef.current); return }
     const e = Date.now() - match.startTime - match.pausedElapsed
     setElapsed(e)
     const rem = totalMs - e
-    if (audioOnRef.current && rem <= 5 * 60 * 1000 && rem > 4.85 * 60 * 1000 && !warned5.current) {
-      warned5.current = true; playBeeps(3, 780, 0.28)
+    if (rem <= 5 * 60 * 1000 && rem > 4.5 * 60 * 1000 && !warned5.current) {
+      warned5.current = true
+      if (audioOnRef.current) playBeeps(5, 880, 0.35)
     }
     if (e >= totalMs && !warnedEnd.current) {
       warnedEnd.current = true
@@ -107,8 +124,11 @@ export default function Match() {
       }
       if (halves === 2 && currentHalf === 1) dispatch({ type: 'HALF_TIME' })
     }
-    if (stoppageSetRef.current && e >= totalMs + stoppageMsRef.current) {
+    if (stoppageSetRef.current && e >= totalMs + stoppageMsRef.current && !warnedStoppage.current) {
+      warnedStoppage.current = true
       clearInterval(timerRef.current)
+      setElapsed(totalMs + stoppageMsRef.current)
+      if (audioOnRef.current) playBeeps(5, 880, 0.35)
     }
   }, [match, totalMs, halves, currentHalf])
 
@@ -127,6 +147,7 @@ export default function Match() {
   const pct = Math.min(100, (elapsed / effectiveTotalMs) * 100)
 
   function handleGoal(player, teamKey) {
+    getAudio()
     dispatch({ type: 'SCORE_GOAL', payload: { player, teamKey } })
     const newScore1 = match.score1 + (teamKey === 'team1' ? 1 : 0)
     const newScore2 = match.score2 + (teamKey === 'team2' ? 1 : 0)
@@ -152,6 +173,7 @@ export default function Match() {
   function handleStartSecondHalf() {
     warned5.current = false
     warnedEnd.current = false
+    warnedStoppage.current = false
     stoppageMsRef.current = 0
     stoppageSetRef.current = false
     dispatch({ type: 'START_SECOND_HALF' })
