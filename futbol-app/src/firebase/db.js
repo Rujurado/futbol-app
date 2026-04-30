@@ -34,10 +34,9 @@ export async function removePlayerFromDB(id) {
 }
 
 export async function uploadPlayerPhoto(file, playerId) {
-  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/heic']
-  if (!allowed.includes(file.type)) throw new Error('Solo se permiten imagenes JPG, PNG o WebP')
-  if (file.size > 5 * 1024 * 1024) throw new Error('La imagen no puede superar 5MB')
-  const ext = file.name.split('.').pop()
+  if (!file.type.startsWith('image/')) throw new Error('Solo se permiten imagenes')
+  if (file.size > 10 * 1024 * 1024) throw new Error('La imagen no puede superar 10MB')
+  const ext = file.name.split('.').pop() || 'jpg'
   const storageRef = ref(storage, `players/${playerId}-${Date.now()}.${ext}`)
   await uploadBytes(storageRef, file)
   return getDownloadURL(storageRef)

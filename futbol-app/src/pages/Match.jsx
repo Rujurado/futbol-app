@@ -23,22 +23,33 @@ function stripPhotos(m) {
 
 // Audio
 let _ctx = null
-async function getAudio() {
-  if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)()
-  if (_ctx.state === 'suspended') await _ctx.resume()
-  return _ctx
-}
-async function playBeeps(n, freq = 880, dur = 0.35) {
+let _unlocked = false
+
+function unlockAudio() {
+  if (_unlocked) return
   try {
-    const ctx = await getAudio()
-    const compressor = ctx.createDynamicsCompressor()
-    compressor.connect(ctx.destination)
+    if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const buf = _ctx.createBuffer(1, 1, 22050)
+    const src = _ctx.createBufferSource()
+    src.buffer = buf
+    src.connect(_ctx.destination)
+    src.start(0)
+    _ctx.resume()
+    _unlocked = true
+  } catch {}
+}
+
+function playBeeps(n, freq = 880, dur = 0.35) {
+  if (!_ctx || !_unlocked) return
+  try {
+    const comp = _ctx.createDynamicsCompressor()
+    comp.connect(_ctx.destination)
     for (let i = 0; i < n; i++) {
-      const t = ctx.currentTime + i * (dur + 0.1)
+      const t = _ctx.currentTime + i * (dur + 0.1)
       ;[freq, freq * 1.5].forEach(f => {
-        const osc = ctx.createOscillator()
-        const g = ctx.createGain()
-        osc.connect(g); g.connect(compressor)
+        const osc = _ctx.createOscillator()
+        const g = _ctx.createGain()
+        osc.connect(g); g.connect(comp)
         osc.frequency.value = f; osc.type = 'square'
         g.setValueAtTime(1.0, t)
         g.exponentialRampToValueAtTime(0.001, t + dur)
@@ -47,18 +58,19 @@ async function playBeeps(n, freq = 880, dur = 0.35) {
     }
   } catch {}
 }
-async function playHorn() {
+
+function playHorn() {
+  if (!_ctx || !_unlocked) return
   try {
-    const ctx = await getAudio()
-    const compressor = ctx.createDynamicsCompressor()
-    compressor.connect(ctx.destination)
+    const comp = _ctx.createDynamicsCompressor()
+    comp.connect(_ctx.destination)
     ;[0, 0.55, 1.1].forEach(offset => {
       ;[880, 1100, 660].forEach(f => {
-        const osc = ctx.createOscillator()
-        const g = ctx.createGain()
-        osc.connect(g); g.connect(compressor)
+        const osc = _ctx.createOscillator()
+        const g = _ctx.createGain()
+        osc.connect(g); g.connect(comp)
         osc.frequency.value = f; osc.type = 'square'
-        const t = ctx.currentTime + offset
+        const t = _ctx.currentTime + offset
         g.setValueAtTime(1.0, t)
         g.exponentialRampToValueAtTime(0.001, t + 0.4)
         osc.start(t); osc.stop(t + 0.41)
@@ -98,8 +110,8 @@ export default function Match() {
   const currentHalf = match?.currentHalf ?? 1
 
   function toggleAudio() {
+    unlockAudio()
     const next = !audioOnRef.current
-    getAudio()
     audioOnRef.current = next
     setAudioOn(next)
   }
@@ -147,7 +159,7 @@ export default function Match() {
   const pct = Math.min(100, (elapsed / effectiveTotalMs) * 100)
 
   function handleGoal(player, teamKey) {
-    getAudio()
+    unlockAudio()
     dispatch({ type: 'SCORE_GOAL', payload: { player, teamKey } })
     const newScore1 = match.score1 + (teamKey === 'team1' ? 1 : 0)
     const newScore2 = match.score2 + (teamKey === 'team2' ? 1 : 0)
@@ -252,7 +264,6 @@ export default function Match() {
           ✕ Salir
         </button>
         {match.stadium && <p className="text-center text-qf-blue text-xs uppercase tracking-widest pt-4">{match.stadium}</p>}
-
         <div className="flex items-center justify-center gap-8 py-4 flex-shrink-0">
           <div className="flex flex-col items-center gap-1">
             <p className="text-xl font-bold text-white">{t1.name}</p>
@@ -272,7 +283,6 @@ export default function Match() {
             <p className="text-8xl font-black tabular-nums" style={{ color: t2.color }}>{match.score2}</p>
           </div>
         </div>
-
         {match.goals.length > 0 && (
           <div className="flex flex-wrap gap-3 justify-center px-4 pb-2 flex-shrink-0">
             {match.goals.map((g, i) => (
@@ -280,11 +290,9 @@ export default function Match() {
             ))}
           </div>
         )}
-
         <div className="flex-1 overflow-y-auto px-3 flex flex-col gap-2">
           <PlayerGrid small />
         </div>
-
         <div className="flex gap-3 px-4 pb-4 pt-2 flex-shrink-0">
           <button onClick={togglePause} disabled={isFinished}
             className="flex-1 py-2.5 rounded-2xl bg-yellow-500/20 text-yellow-300 font-semibold active:scale-95 disabled:opacity-40">
@@ -301,7 +309,6 @@ export default function Match() {
 
   return (
     <div className="min-h-screen flex flex-col safe-top safe-bottom no-select bg-qf-dark">
-
       <div className="flex-shrink-0 pt-3 px-4">
         {match.stadium && <p className="text-center text-qf-blue text-xs uppercase tracking-widest mb-2">🏟️ {match.stadium}</p>}
         <div className="flex items-center justify-between gap-2 bg-qf-card rounded-2xl p-4 border border-qf-border">
@@ -313,9 +320,7 @@ export default function Match() {
           <div className="flex flex-col items-center px-2">
             <div className={`text-3xl font-black tabular-nums ${remaining === 0 ? 'text-red-400' : isPaused ? 'text-yellow-400' : 'text-white'}`}>
               {timeStr}
-              {isInStoppage && (
-                <span className="text-orange-400 text-xl ml-1">+{stoppageMinDisplay}'</span>
-              )}
+              {isInStoppage && <span className="text-orange-400 text-xl ml-1">+{stoppageMinDisplay}'</span>}
             </div>
             <div className="w-24 h-1.5 bg-qf-dark rounded-full mt-1 overflow-hidden">
               <div className={`h-full rounded-full transition-all ${isInStoppage ? 'bg-orange-400' : 'bg-qf-blue'}`} style={{ width: `${pct}%` }} />
@@ -331,7 +336,6 @@ export default function Match() {
             <span className="text-5xl font-black tabular-nums" style={{ color: t2.color }}>{match.score2}</span>
           </div>
         </div>
-
         {match.goals.length > 0 && (
           <div className="mt-2 px-1 flex flex-col gap-0.5">
             {match.goals.map((g, i) => (
